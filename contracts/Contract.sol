@@ -6,14 +6,12 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 // interfaces
-import "./interfaces/IAllo.sol";
-import "./interfaces/IRegistry.sol";
-import "./interfaces/IStrategy.sol";
+
 
 contract Contract is Initializable {
-    IAllo public allo;
-    IRegistry public registry;
-    IStrategy public strategy;
+    // IAllo public allo;
+    // IRegistry public registry;
+    // IStrategy public strategy;
 
     /// @dev see { openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol }
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -21,13 +19,13 @@ contract Contract is Initializable {
         _disableInitializers();
     }
 
-    function initialize(
-        IAllo _allo,
-        IRegistry _registry,
-        IStrategy _strategy
-    ) public initializer {
-        allo = _allo;
-        registry = _registry;
-        strategy = _strategy;
-    }
+    // function initialize(
+    //     IAllo _allo,
+    //     IRegistry _registry,
+    //     IStrategy _strategy
+    // ) public initializer {
+    //     allo = _allo;
+    //     registry = _registry;
+    //     strategy = _strategy;
+    // }
 }
