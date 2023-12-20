@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
-import "hardhat/console.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+// Caution: dependencies are following remmaping.txt
+import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
-// interfaces
-
+// import Allo V2
+import {Allo} from "../lib/allo/contracts/core/Allo.sol";
+import {Registry} from "../lib/allo/contracts/core/Registry.sol";
+import {Anchor} from "../lib/allo/contracts/core/Anchor.sol";
+import {QVSimpleStrategy} from "../lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
 
 contract Contract is Initializable {
-    // IAllo public allo;
-    // IRegistry public registry;
-    // IStrategy public strategy;
+    Allo allo;
 
     /// @dev see { openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol }
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -19,13 +19,8 @@ contract Contract is Initializable {
         _disableInitializers();
     }
 
-    // function initialize(
-    //     IAllo _allo,
-    //     IRegistry _registry,
-    //     IStrategy _strategy
-    // ) public initializer {
-    //     allo = _allo;
-    //     registry = _registry;
-    //     strategy = _strategy;
-    // }
+    function initialize() public initializer {
+        // Allo V2
+        allo = new Allo();
+    }
 }
