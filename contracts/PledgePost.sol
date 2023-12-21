@@ -15,7 +15,13 @@ contract PledgePost {
     QVSimpleStrategy qvSimpleStrategy;
 
     uint256 nonce;
-
+		
+    struct Article {
+        uint256 id;
+        address payable author;
+        string content; // CID
+        uint256 donationsReceived;
+    }
     enum ApplicationStatus {
         Pending,
         Accepted,
