@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-// Caution: dependencies are following remmaping.txt
-
 // import Allo V2
 import {Allo} from "../lib/allo/contracts/core/Allo.sol";
 import {Registry} from "../lib/allo/contracts/core/Registry.sol";
@@ -17,6 +15,43 @@ contract PledgePost {
     QVSimpleStrategy qvSimpleStrategy;
 
     uint256 nonce;
+
+    enum ApplicationStatus {
+        Pending,
+        Accepted,
+        Denied
+    }
+    event ArticlePosted(
+        address indexed author,
+        string content,
+        uint256 articleId
+    );
+    event ArticleDonated(
+        address indexed author,
+        address indexed from,
+        uint256 articleId,
+        uint256 amount
+    );
+    event RoundCreated(
+        address indexed owner,
+        address ipoolAddress,
+        uint256 roundId,
+        bytes name,
+        bytes description,
+        uint256 startDate,
+        uint256 endDate
+    );
+    event RoundApplied(
+        address indexed author,
+        uint256 articleId,
+        uint256 roundId
+    );
+    event Allocated(
+        uint256 indexed roundId,
+        address recipient,
+        uint256 articleId,
+        uint256 amount
+    );
 
     constructor(
         address _owner,
@@ -50,5 +85,24 @@ contract PledgePost {
         nonce++;
     }
 
-    function createRound() external {}
+    function postArticle(string calldata _content) external {}
+
+    function updateArticle(
+        uint256 _articleId,
+        string calldata _content
+    ) external {}
+
+    function donateToArticle(
+        address payable _author,
+        uint256 _articleId
+    ) external payable {}
+
+    function applyForRound(uint256 _roundId, uint256 _articleId) external {}
+
+    function createRound(
+        string calldata _name,
+        string calldata _description,
+        uint256 _startDate,
+        uint256 _endDate
+    ) external {}
 }
