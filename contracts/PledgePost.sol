@@ -29,7 +29,7 @@ contract PledgePost {
         // deploy Allo V2 contracts
         registry = new Registry();
         qvSimpleStrategy = new QVSimpleStrategy(
-            address(this),
+            address(allo),
             "PledgePost QVSimpleStrategy"
         );
         registry.initialize(_owner);
