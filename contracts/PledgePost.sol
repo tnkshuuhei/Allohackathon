@@ -15,7 +15,7 @@ contract PledgePost {
     QVSimpleStrategy qvSimpleStrategy;
 
     uint256 nonce;
-		
+
     struct Article {
         uint256 id;
         address payable author;
@@ -69,24 +69,27 @@ contract PledgePost {
 
         // deploy Allo V2 contracts
         registry = new Registry();
+        allo = new Allo();
         qvSimpleStrategy = new QVSimpleStrategy(
             address(allo),
             "PledgePost QVSimpleStrategy"
         );
+        // initialize Allo V2 contracts
         registry.initialize(_owner);
-        registry.createProfile(
+        allo.initialize(
+            _owner,
+            address(registry),
+            payable(_treasury),
+            _percentFee,
+            _baseFee
+        );
+        // create a new profile for the owner
+        bytes32 ownerProfile = registry.createProfile(
             nonce,
             "PledgePost Owner Profile",
             Metadata({protocol: 1, pointer: "PledgePost"}),
             _owner,
             new address[](0)
-        );
-        allo.initialize(
-            _owner,
-            address(registry),
-            _treasury,
-            _percentFee,
-            _baseFee
         );
         nonce++;
     }
@@ -111,4 +114,8 @@ contract PledgePost {
         uint256 _startDate,
         uint256 _endDate
     ) external {}
+
+    function getAlloAddress() external view returns (address) {
+        return address(allo);
+    }
 }

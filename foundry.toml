@@ -10,5 +10,3 @@ test = 'test/foundry'
 cache_path = 'cache_forge'
 remappings = []
 
-[fmt]
-ignore = ['lib/**']
