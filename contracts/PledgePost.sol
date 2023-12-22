@@ -4,23 +4,32 @@ pragma solidity ^0.8.19;
 // import Allo V2
 import {Allo} from "../lib/allo/contracts/core/Allo.sol";
 import {Registry} from "../lib/allo/contracts/core/Registry.sol";
-import {Anchor} from "../lib/allo/contracts/core/Anchor.sol";
+// import {Anchor} from "../lib/allo/contracts/core/Anchor.sol";
 import {QVSimpleStrategy} from "../lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
 import {Metadata} from "../lib/allo/contracts/core/libraries/Metadata.sol";
 
 contract PledgePost {
     Allo allo;
     Registry registry;
-    Anchor anchor;
     QVSimpleStrategy qvSimpleStrategy;
+    // Anchor anchor;
 
-    uint256 nonce;
+    uint256 nonce = 0;
+    uint256 articleCount = 0;
+    // author => articles
+    // track articles by author
+    mapping(address => Article[]) private authorArticles;
+
+    // profileId => articles
+    mapping(bytes32 => Article) private profileArticle;
 
     struct Article {
         uint256 id;
         address payable author;
         string content; // CID
         uint256 donationsReceived;
+        bytes32 profileId;
+        uint256 articleCount;
     }
     enum ApplicationStatus {
         Pending,
@@ -30,7 +39,8 @@ contract PledgePost {
     event ArticlePosted(
         address indexed author,
         string content,
-        uint256 articleId
+        uint256 articleId,
+        bytes32 profileId
     );
     event ArticleDonated(
         address indexed author,
@@ -65,8 +75,6 @@ contract PledgePost {
         uint256 _percentFee,
         uint256 _baseFee
     ) {
-        nonce = 0;
-
         // deploy Allo V2 contracts
         registry = new Registry();
         allo = new Allo();
@@ -84,9 +92,9 @@ contract PledgePost {
             _baseFee
         );
         // create a new profile for the owner
-        bytes32 ownerProfile = registry.createProfile(
+        registry.createProfile(
             nonce,
-            "PledgePost Owner Profile",
+            "PledgePost Contract Owner Profile",
             Metadata({protocol: 1, pointer: "PledgePost"}),
             _owner,
             new address[](0)
@@ -94,7 +102,37 @@ contract PledgePost {
         nonce++;
     }
 
-    function postArticle(string calldata _content) external {}
+    // ====================================
+    // PleldgePost function
+    // ====================================
+
+    function postArticle(
+        string memory _content,
+        address[] memory _contributors
+    ) external returns (Article memory) {
+        require(bytes(_content).length > 0, "Content cannot be empty");
+        bytes32 profileId = registry.createProfile(
+            nonce,
+            "PledgePost Author Profile:",
+            Metadata({protocol: 1, pointer: "PledgePost"}),
+            msg.sender,
+            _contributors
+        );
+        uint articleId = authorArticles[msg.sender].length;
+        Article memory newArticle = Article({
+            id: articleId,
+            author: payable(msg.sender),
+            content: _content,
+            donationsReceived: 0,
+            profileId: profileId,
+            articleCount: articleCount
+        });
+
+        authorArticles[msg.sender].push(newArticle);
+        articleCount++;
+        emit ArticlePosted(msg.sender, _content, articleId, profileId);
+        return newArticle;
+    }
 
     function updateArticle(
         uint256 _articleId,
@@ -115,7 +153,38 @@ contract PledgePost {
         uint256 _endDate
     ) external {}
 
+    function getArticlesByAuthor(
+        address _author
+    ) external view returns (Article[] memory) {
+        return authorArticles[_author];
+    }
+
+    function getArticleByProfileId(
+        bytes32 _profileId
+    ) external view returns (Article memory) {
+        return profileArticle[_profileId];
+    }
+
+    // ====================================
+    // Registry function
+    // ====================================
+
+    function addMembers(
+        bytes32 _profileId,
+        address[] calldata _members
+    ) external {
+        registry.addMembers(_profileId, _members);
+    }
+
     function getAlloAddress() external view returns (address) {
         return address(allo);
+    }
+
+    function getRegistryAddress() external view returns (address) {
+        return address(registry);
+    }
+
+    function getQVSimpleStrategyAddress() external view returns (address) {
+        return address(qvSimpleStrategy);
     }
 }
