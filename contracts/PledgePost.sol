@@ -2,16 +2,20 @@
 pragma solidity ^0.8.19;
 
 // import Allo V2
-import {Allo} from "../lib/allo/contracts/core/Allo.sol";
-import {Registry} from "../lib/allo/contracts/core/Registry.sol";
+import {Allo} from "lib/allo/contracts/core/Allo.sol";
+import {Registry} from "lib/allo/contracts/core/Registry.sol";
 // import {Anchor} from "../lib/allo/contracts/core/Anchor.sol";
 import {QVSimpleStrategy} from "../lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
 import {Metadata} from "../lib/allo/contracts/core/libraries/Metadata.sol";
+
+// import {ISignatureTransfer} from "lib/allo/lib/permit2/src/interfaces/ISignatureTransfer.sol";
+// import {DonationVotingMerkleDistributionDirectTransferStrategy} from "../lib/allo/contracts/strategies/donation-voting-merkle-distribution-direct-transfer/DonationVotingMerkleDistributionDirectTransferStrategy.sol";
 
 contract PledgePost {
     Allo allo;
     Registry registry;
     QVSimpleStrategy qvSimpleStrategy;
+    // DonationVotingMerkleDistributionDirectTransferStrategy strategy;
     // Anchor anchor;
 
     uint256 nonce = 0;
@@ -82,6 +86,7 @@ contract PledgePost {
             address(allo),
             "PledgePost QVSimpleStrategy"
         );
+
         // initialize Allo V2 contracts
         registry.initialize(_owner);
         allo.initialize(
@@ -151,7 +156,14 @@ contract PledgePost {
         string calldata _description,
         uint256 _startDate,
         uint256 _endDate
-    ) external {}
+    ) external {
+        // initialize strategy
+        // strategy = new DonationVotingMerkleDistributionDirectTransferStrategy(
+        //     address(allo),
+        //     name,
+        //     _permit2
+        // );
+    }
 
     function getArticlesByAuthor(
         address _author
