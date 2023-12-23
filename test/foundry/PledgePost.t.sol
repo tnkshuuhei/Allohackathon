@@ -12,6 +12,10 @@ contract PledgePostTest is Test {
     address owner = 0x9B789cc315F1eedFbCBE759DEbb5a3D5D41B788f;
     address payable treasury =
         payable(0x9B789cc315F1eedFbCBE759DEbb5a3D5D41B788f);
+    uint64 public registrationStartTime;
+    uint64 public registrationEndTime;
+    uint64 public allocationStartTime;
+    uint64 public allocationEndTime;
 
     address allo;
     address registry;
@@ -49,14 +53,23 @@ contract PledgePostTest is Test {
     }
 
     function testCreateRound() public {
-        address[] memory addresses = new address[](0);
+        address[] memory addresses = new address[](1);
+        addresses[0] = owner;
+        registrationStartTime = uint64(block.timestamp + 10);
+        registrationEndTime = uint64(block.timestamp + 300);
+        allocationStartTime = uint64(block.timestamp + 301);
+        allocationEndTime = uint64(block.timestamp + 600);
+
         permit2 = ISignatureTransfer(address(new Permit2()));
-        pledgepost.createRound(
+        pledgepost.createRound{value: 1e18}(
             "test Round",
             permit2,
-            "0x",
-            1000000000000000000,
-            addresses
+            1e18,
+            addresses,
+            registrationStartTime,
+            registrationEndTime,
+            allocationStartTime,
+            allocationEndTime
         );
     }
 }

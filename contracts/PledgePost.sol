@@ -6,10 +6,10 @@ pragma solidity ^0.8.19;
 import {Allo} from "lib/allo/contracts/core/Allo.sol";
 import {Registry} from "lib/allo/contracts/core/Registry.sol";
 // import {Anchor} from "../lib/allo/contracts/core/Anchor.sol";
-// import {QVSimpleStrategy} from "../lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
 import {Metadata} from "../lib/allo/contracts/core/libraries/Metadata.sol";
 import {ISignatureTransfer} from "lib/allo/lib/permit2/src/interfaces/ISignatureTransfer.sol";
 import {DonationVotingMerkleDistributionDirectTransferStrategy} from "lib/allo/contracts/strategies/donation-voting-merkle-distribution-direct-transfer/DonationVotingMerkleDistributionDirectTransferStrategy.sol";
+import {DonationVotingMerkleDistributionBaseStrategy} from "lib/allo/contracts/strategies/donation-voting-merkle-base/DonationVotingMerkleDistributionBaseStrategy.sol";
 
 contract PledgePost {
     Allo allo;
@@ -60,12 +60,6 @@ contract PledgePost {
         address indexed author,
         uint256 articleId,
         uint256 roundId
-    );
-    event Allocated(
-        uint256 indexed roundId,
-        address recipient,
-        uint256 articleId,
-        uint256 amount
     );
 
     constructor(
@@ -145,28 +139,48 @@ contract PledgePost {
 
     function applyForRound(uint256 _roundId, uint256 _articleId) external {}
 
-    ///  _data The data to be decoded to initialize the strategy
-    ///  InitializeData(bool _useRegistryAnchor, bool _metadataRequired, uint64 _registrationStartTime,
-    ///               uint64 _registrationEndTime, uint64 _allocationStartTime, uint64 _allocationEndTime,
-    ///               address[] memory _allowedTokens)
     function createRound(
         string calldata _name,
         ISignatureTransfer _permit2,
-        bytes memory _data,
         uint256 _amount,
-        address[] memory _managers
-    ) external returns (uint256) {
-        // initialize strategy
+        address[] memory _managers,
+        uint64 registrationStartTime,
+        uint64 registrationEndTime,
+        uint64 allocationStartTime,
+        uint64 allocationEndTime
+    ) external payable returns (uint256) {
+        // deploy strategy
         DonationVotingMerkleDistributionDirectTransferStrategy _strategy = new DonationVotingMerkleDistributionDirectTransferStrategy(
                 address(allo),
                 _name,
                 _permit2
             );
+        // the case of using other tokens,
+        // take array of adddress as argument and add to _allowedTokens
+        address[] memory _allowedTokens = new address[](1);
+        _allowedTokens[0] = NATIVE;
+
+        ///  _data The data to be decoded to initialize the strategy
+        bytes memory _data = abi.encode(
+            DonationVotingMerkleDistributionBaseStrategy.InitializeData({
+                useRegistryAnchor: false,
+                metadataRequired: false,
+                registrationStartTime: registrationStartTime,
+                registrationEndTime: registrationEndTime,
+                allocationStartTime: allocationStartTime,
+                allocationEndTime: allocationEndTime,
+                allowedTokens: _allowedTokens
+            })
+        );
+
         Metadata memory _metadata = Metadata({
             protocol: 1,
             pointer: "PledgePost QF Strategy"
         });
-        uint256 poolId = allo.createPoolWithCustomStrategy(
+
+        // fund pool when deploying strategy instead of allo.fundPool function
+        // strategy is not initialized yet, it'll be initialized here
+        uint256 poolId = allo.createPoolWithCustomStrategy{value: _amount}(
             ownerProfileId,
             address(_strategy),
             _data,
