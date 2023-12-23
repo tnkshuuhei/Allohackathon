@@ -147,11 +147,10 @@ contract PledgePost {
     ///               address[] memory _allowedTokens)
     function createRound(
         string calldata _name,
-        // string calldata _description,
-        address[] memory _managers,
-        uint256 _amount,
         ISignatureTransfer _permit2,
-        bytes memory _data
+        bytes memory _data,
+        uint256 _amount,
+        address[] memory _managers
     ) external returns (uint256) {
         // initialize strategy
         strategy = new DonationVotingMerkleDistributionDirectTransferStrategy(
@@ -204,10 +203,10 @@ contract PledgePost {
     }
 
     function getRegistryAddress() external view returns (address) {
-        return address(registry);
+        return allo.getRegistry();
     }
 
     function getQVSimpleStrategyAddress() external view returns (address) {
-        return address(qvSimpleStrategy);
+        return allo.getStrategy();
     }
 }
