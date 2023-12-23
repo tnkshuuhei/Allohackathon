@@ -5,11 +5,9 @@ pragma solidity ^0.8.19;
 // import Allo V2
 import {Allo} from "lib/allo/contracts/core/Allo.sol";
 import {Registry} from "lib/allo/contracts/core/Registry.sol";
-// import {Anchor} from "../lib/allo/contracts/core/Anchor.sol";
 import {Metadata} from "../lib/allo/contracts/core/libraries/Metadata.sol";
-import {ISignatureTransfer} from "lib/allo/lib/permit2/src/interfaces/ISignatureTransfer.sol";
-import {DonationVotingMerkleDistributionDirectTransferStrategy} from "lib/allo/contracts/strategies/donation-voting-merkle-distribution-direct-transfer/DonationVotingMerkleDistributionDirectTransferStrategy.sol";
-import {DonationVotingMerkleDistributionBaseStrategy} from "lib/allo/contracts/strategies/donation-voting-merkle-base/DonationVotingMerkleDistributionBaseStrategy.sol";
+import {QVSimpleStrategy} from "lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
+import {QVBaseStrategy} from "lib/allo/contracts/strategies/qv-base/QVBaseStrategy.sol";
 
 contract PledgePost {
     Allo allo;
@@ -139,9 +137,20 @@ contract PledgePost {
 
     function applyForRound(uint256 _roundId, uint256 _articleId) external {}
 
+    // struct InitializeParams {
+    //     // slot 0
+    //     bool registryGating;
+    //     bool metadataRequired;
+    //     // slot 1
+    //     uint256 reviewThreshold;
+    //     // slot 2
+    //     uint64 registrationStartTime;
+    //     uint64 registrationEndTime;
+    //     uint64 allocationStartTime;
+    //     uint64 allocationEndTime;
+    // }
     function createRound(
         string calldata _name,
-        ISignatureTransfer _permit2,
         uint256 _amount,
         address[] memory _managers,
         uint64 registrationStartTime,
@@ -150,26 +159,21 @@ contract PledgePost {
         uint64 allocationEndTime
     ) external payable returns (uint256) {
         // deploy strategy
-        DonationVotingMerkleDistributionDirectTransferStrategy _strategy = new DonationVotingMerkleDistributionDirectTransferStrategy(
-                address(allo),
-                _name,
-                _permit2
-            );
-        // the case of using other tokens,
-        // take array of adddress as argument and add to _allowedTokens
-        address[] memory _allowedTokens = new address[](1);
-        _allowedTokens[0] = NATIVE;
+        QVSimpleStrategy _strategy = new QVSimpleStrategy(address(allo), _name);
 
         ///  _data The data to be decoded to initialize the strategy
         bytes memory _data = abi.encode(
-            DonationVotingMerkleDistributionBaseStrategy.InitializeData({
-                useRegistryAnchor: false,
-                metadataRequired: false,
-                registrationStartTime: registrationStartTime,
-                registrationEndTime: registrationEndTime,
-                allocationStartTime: allocationStartTime,
-                allocationEndTime: allocationEndTime,
-                allowedTokens: _allowedTokens
+            QVSimpleStrategy.InitializeParamsSimple({
+                maxVoiceCreditsPerAllocator: 1e18,
+                params: QVBaseStrategy.InitializeParams({
+                    registryGating: true,
+                    metadataRequired: true,
+                    reviewThreshold: 2,
+                    registrationStartTime: registrationStartTime,
+                    registrationEndTime: registrationEndTime,
+                    allocationStartTime: allocationStartTime,
+                    allocationEndTime: allocationEndTime
+                })
             })
         );
 

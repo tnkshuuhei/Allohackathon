@@ -3,9 +3,6 @@ pragma solidity ^0.8.19;
 
 import {Test, console2} from "forge-std/Test.sol";
 import "../../contracts/PledgePost.sol";
-import {ISignatureTransfer} from "lib/allo/lib/permit2/src/interfaces/ISignatureTransfer.sol";
-import {DonationVotingMerkleDistributionDirectTransferStrategy} from "lib/allo/contracts/strategies/donation-voting-merkle-distribution-direct-transfer/DonationVotingMerkleDistributionDirectTransferStrategy.sol";
-import {Permit2} from "lib/allo/test/utils/Permit2Mock.sol";
 
 contract PledgePostTest is Test {
     PledgePost pledgepost;
@@ -19,7 +16,7 @@ contract PledgePostTest is Test {
 
     address allo;
     address registry;
-    ISignatureTransfer public permit2;
+
     //0x000000000022d473030f116ddee9f6b43ac78ba3 uniswap
     // https://docs.uniswap.org/contracts/v3/reference/deployments
 
@@ -60,10 +57,10 @@ contract PledgePostTest is Test {
         allocationStartTime = uint64(block.timestamp + 301);
         allocationEndTime = uint64(block.timestamp + 600);
 
-        permit2 = ISignatureTransfer(address(new Permit2()));
-        pledgepost.createRound{value: 1e18}(
+        // permit2 = ISignatureTransfer(address(new Permit2()));
+        uint256 poolId = pledgepost.createRound{value: 1e18}(
             "test Round",
-            permit2,
+            // permit2,
             1e18,
             addresses,
             registrationStartTime,
@@ -71,5 +68,7 @@ contract PledgePostTest is Test {
             allocationStartTime,
             allocationEndTime
         );
+        emit log_named_uint("poolId", poolId);
+        assertEq(poolId, 1);
     }
 }
