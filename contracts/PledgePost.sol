@@ -14,7 +14,6 @@ import {DonationVotingMerkleDistributionDirectTransferStrategy} from "lib/allo/c
 contract PledgePost {
     Allo allo;
     Registry registry;
-    DonationVotingMerkleDistributionDirectTransferStrategy strategy;
     // Anchor anchor;
     address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 nonce = 0;
@@ -27,6 +26,7 @@ contract PledgePost {
 
     // profileId => articles
     mapping(bytes32 => Article) private profileArticle;
+    mapping(uint256 => address) public strategies;
 
     struct Article {
         uint256 id;
@@ -153,25 +153,26 @@ contract PledgePost {
         address[] memory _managers
     ) external returns (uint256) {
         // initialize strategy
-        strategy = new DonationVotingMerkleDistributionDirectTransferStrategy(
-            address(allo),
-            _name,
-            _permit2
-        );
+        DonationVotingMerkleDistributionDirectTransferStrategy _strategy = new DonationVotingMerkleDistributionDirectTransferStrategy(
+                address(allo),
+                _name,
+                _permit2
+            );
         Metadata memory _metadata = Metadata({
             protocol: 1,
             pointer: "PledgePost QF Strategy"
         });
         uint256 poolId = allo.createPoolWithCustomStrategy(
             ownerProfileId,
-            address(strategy),
+            address(_strategy),
             _data,
             NATIVE,
             _amount,
             _metadata,
             _managers
         );
-        emit RoundCreated(poolId, _name, NATIVE, _amount, address(strategy));
+        strategies[poolId] = address(_strategy);
+        emit RoundCreated(poolId, _name, NATIVE, _amount, address(_strategy));
         return poolId;
     }
 
@@ -203,10 +204,12 @@ contract PledgePost {
     }
 
     function getRegistryAddress() external view returns (address) {
-        return allo.getRegistry();
+        return address(registry);
     }
 
-    function getQVSimpleStrategyAddress() external view returns (address) {
-        return allo.getStrategy();
+    function getStrategyAddress(
+        uint256 _poolId
+    ) external view returns (address) {
+        return allo.getStrategy(_poolId);
     }
 }
