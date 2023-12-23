@@ -20,6 +20,7 @@ contract PledgePost {
     uint256 articleCount = 0;
 
     bytes32 public ownerProfileId;
+
     // author => articles
     // track articles by author
     mapping(address => Article[]) private authorArticles;
@@ -86,13 +87,16 @@ contract PledgePost {
             _percentFee,
             _baseFee
         );
+        address[] memory members = new address[](1);
+        members[0] = _owner;
+
         // create a new profile for the owner
         ownerProfileId = registry.createProfile(
             nonce,
             "PledgePost Contract Owner Profile",
             Metadata({protocol: 1, pointer: "PledgePost"}),
-            _owner,
-            new address[](0)
+            address(this),
+            members
         );
         nonce++;
     }
