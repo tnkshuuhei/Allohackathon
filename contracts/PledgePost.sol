@@ -1,25 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+// import {Ownable} from "lib/allo/lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 // import Allo V2
 import {Allo} from "lib/allo/contracts/core/Allo.sol";
 import {Registry} from "lib/allo/contracts/core/Registry.sol";
 // import {Anchor} from "../lib/allo/contracts/core/Anchor.sol";
-import {QVSimpleStrategy} from "../lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
+// import {QVSimpleStrategy} from "../lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
 import {Metadata} from "../lib/allo/contracts/core/libraries/Metadata.sol";
-
-// import {ISignatureTransfer} from "lib/allo/lib/permit2/src/interfaces/ISignatureTransfer.sol";
-// import {DonationVotingMerkleDistributionDirectTransferStrategy} from "../lib/allo/contracts/strategies/donation-voting-merkle-distribution-direct-transfer/DonationVotingMerkleDistributionDirectTransferStrategy.sol";
+import {ISignatureTransfer} from "lib/allo/lib/permit2/src/interfaces/ISignatureTransfer.sol";
+import {DonationVotingMerkleDistributionDirectTransferStrategy} from "lib/allo/contracts/strategies/donation-voting-merkle-distribution-direct-transfer/DonationVotingMerkleDistributionDirectTransferStrategy.sol";
 
 contract PledgePost {
     Allo allo;
     Registry registry;
-    QVSimpleStrategy qvSimpleStrategy;
-    // DonationVotingMerkleDistributionDirectTransferStrategy strategy;
+    DonationVotingMerkleDistributionDirectTransferStrategy strategy;
     // Anchor anchor;
-
+    address public constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 nonce = 0;
     uint256 articleCount = 0;
+
+    bytes32 public ownerProfileId;
     // author => articles
     // track articles by author
     mapping(address => Article[]) private authorArticles;
@@ -35,11 +36,6 @@ contract PledgePost {
         bytes32 profileId;
         uint256 articleCount;
     }
-    enum ApplicationStatus {
-        Pending,
-        Accepted,
-        Denied
-    }
     event ArticlePosted(
         address indexed author,
         string content,
@@ -53,13 +49,11 @@ contract PledgePost {
         uint256 amount
     );
     event RoundCreated(
-        address indexed owner,
-        address ipoolAddress,
-        uint256 roundId,
-        bytes name,
-        bytes description,
-        uint256 startDate,
-        uint256 endDate
+        uint256 indexed poolId,
+        string name,
+        address token,
+        uint256 amount,
+        address strategy
     );
     event RoundApplied(
         address indexed author,
@@ -82,10 +76,6 @@ contract PledgePost {
         // deploy Allo V2 contracts
         registry = new Registry();
         allo = new Allo();
-        qvSimpleStrategy = new QVSimpleStrategy(
-            address(allo),
-            "PledgePost QVSimpleStrategy"
-        );
 
         // initialize Allo V2 contracts
         registry.initialize(_owner);
@@ -97,7 +87,7 @@ contract PledgePost {
             _baseFee
         );
         // create a new profile for the owner
-        registry.createProfile(
+        ownerProfileId = registry.createProfile(
             nonce,
             "PledgePost Contract Owner Profile",
             Metadata({protocol: 1, pointer: "PledgePost"}),
@@ -151,18 +141,39 @@ contract PledgePost {
 
     function applyForRound(uint256 _roundId, uint256 _articleId) external {}
 
+    ///  _data The data to be decoded to initialize the strategy
+    ///  InitializeData(bool _useRegistryAnchor, bool _metadataRequired, uint64 _registrationStartTime,
+    ///               uint64 _registrationEndTime, uint64 _allocationStartTime, uint64 _allocationEndTime,
+    ///               address[] memory _allowedTokens)
     function createRound(
         string calldata _name,
-        string calldata _description,
-        uint256 _startDate,
-        uint256 _endDate
-    ) external {
+        // string calldata _description,
+        address[] memory _managers,
+        uint256 _amount,
+        ISignatureTransfer _permit2,
+        bytes memory _data
+    ) external returns (uint256) {
         // initialize strategy
-        // strategy = new DonationVotingMerkleDistributionDirectTransferStrategy(
-        //     address(allo),
-        //     name,
-        //     _permit2
-        // );
+        strategy = new DonationVotingMerkleDistributionDirectTransferStrategy(
+            address(allo),
+            _name,
+            _permit2
+        );
+        Metadata memory _metadata = Metadata({
+            protocol: 1,
+            pointer: "PledgePost QF Strategy"
+        });
+        uint256 poolId = allo.createPoolWithCustomStrategy(
+            ownerProfileId,
+            address(strategy),
+            _data,
+            NATIVE,
+            _amount,
+            _metadata,
+            _managers
+        );
+        emit RoundCreated(poolId, _name, NATIVE, _amount, address(strategy));
+        return poolId;
     }
 
     function getArticlesByAuthor(
