@@ -2,11 +2,12 @@
 [profile.default]
 solc-version = "0.8.19"
 optimizer = true
-optimizer-runs = 1_000
+optimizer-runs = 10_000_000
 src = 'contracts'
 out = 'out'
 libs = ['node_modules', 'lib']
 test = 'test/foundry'
 cache_path = 'cache_forge'
 remappings = []
+via_ir = true
 

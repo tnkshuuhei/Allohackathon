@@ -8,6 +8,7 @@ import {Registry} from "lib/allo/contracts/core/Registry.sol";
 import {Metadata} from "../lib/allo/contracts/core/libraries/Metadata.sol";
 import {QVSimpleStrategy} from "lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
 import {QVBaseStrategy} from "lib/allo/contracts/strategies/qv-base/QVBaseStrategy.sol";
+import {IStrategy} from "lib/allo/contracts/core/interfaces/IStrategy.sol";
 
 contract PledgePost {
     Allo allo;
@@ -25,6 +26,7 @@ contract PledgePost {
 
     // profileId => articles
     mapping(bytes32 => Article) private profileArticle;
+    // poolId => strategy
     mapping(uint256 => address) public strategies;
 
     struct Article {
@@ -79,14 +81,17 @@ contract PledgePost {
             _percentFee,
             _baseFee
         );
-        address[] memory members = new address[](1);
+        address[] memory members = new address[](2);
         members[0] = _owner;
+        members[1] = msg.sender;
 
         // create a new profile for the owner
         ownerProfileId = registry.createProfile(
             nonce,
             "PledgePost Contract Owner Profile",
             Metadata({protocol: 1, pointer: "PledgePost"}),
+            // should be manage correctly
+            // temporary setting address(this) because contract itself call allo functions
             address(this),
             members
         );
@@ -121,6 +126,7 @@ contract PledgePost {
 
         authorArticles[msg.sender].push(newArticle);
         articleCount++;
+        nonce++;
         emit ArticlePosted(msg.sender, _content, articleId, profileId);
         return newArticle;
     }
@@ -135,7 +141,20 @@ contract PledgePost {
         uint256 _articleId
     ) external payable {}
 
-    function applyForRound(uint256 _roundId, uint256 _articleId) external {}
+    /*
+		// should be called via allo contract
+		// because it takes msg.sender as the recipient
+    function applyForRound(uint256 _poolId, bytes memory _data) external {
+        /// - If registryGating is true, then the data is encoded as (address recipientId, address recipientAddress, Metadata metadata)
+        /// - If registryGating is false, then the data is encoded as (address recipientAddress, address registryAnchor, Metadata metadata)
+        require(
+            getStrategyAddress(_poolId) != address(0),
+            "Strategy not found"
+        );
+        address _strategy = getStrategyAddress(_poolId);
+        allo.registerRecipient(_poolId, _data);
+    }
+		*/
 
     // struct InitializeParams {
     //     // slot 0
@@ -157,7 +176,7 @@ contract PledgePost {
         uint64 registrationEndTime,
         uint64 allocationStartTime,
         uint64 allocationEndTime
-    ) external payable returns (uint256) {
+    ) external payable returns (uint256, address) {
         // deploy strategy
         QVSimpleStrategy _strategy = new QVSimpleStrategy(address(allo), _name);
 
@@ -166,7 +185,7 @@ contract PledgePost {
             QVSimpleStrategy.InitializeParamsSimple({
                 maxVoiceCreditsPerAllocator: 1e18,
                 params: QVBaseStrategy.InitializeParams({
-                    registryGating: true,
+                    registryGating: false,
                     metadataRequired: true,
                     reviewThreshold: 2,
                     registrationStartTime: registrationStartTime,
@@ -195,7 +214,7 @@ contract PledgePost {
         );
         strategies[poolId] = address(_strategy);
         emit RoundCreated(poolId, _name, NATIVE, _amount, address(_strategy));
-        return poolId;
+        return (poolId, address(_strategy));
     }
 
     function getArticlesByAuthor(
@@ -221,17 +240,21 @@ contract PledgePost {
         registry.addMembers(_profileId, _members);
     }
 
-    function getAlloAddress() external view returns (address) {
+    function getAlloAddress() public view returns (address) {
         return address(allo);
     }
 
-    function getRegistryAddress() external view returns (address) {
+    function getRegistryAddress() public view returns (address) {
         return address(registry);
     }
 
-    function getStrategyAddress(
-        uint256 _poolId
-    ) external view returns (address) {
+    function getStrategyAddress(uint256 _poolId) public view returns (address) {
         return allo.getStrategy(_poolId);
+    }
+
+    function getProfileById(
+        bytes32 _profileId
+    ) public view returns (Registry.Profile memory) {
+        return registry.getProfileById(_profileId);
     }
 }
