@@ -3,12 +3,12 @@ pragma solidity ^0.8.19;
 
 // import {Ownable} from "lib/allo/lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 // import Allo V2
-import {Allo} from "lib/allo/contracts/core/Allo.sol";
-import {Registry} from "lib/allo/contracts/core/Registry.sol";
+import {Allo} from "../lib/allo/contracts/core/Allo.sol";
+import {Registry} from "../lib/allo/contracts/core/Registry.sol";
 import {Metadata} from "../lib/allo/contracts/core/libraries/Metadata.sol";
-import {QVSimpleStrategy} from "lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
-import {QVBaseStrategy} from "lib/allo/contracts/strategies/qv-base/QVBaseStrategy.sol";
-import {IStrategy} from "lib/allo/contracts/core/interfaces/IStrategy.sol";
+import {QVSimpleStrategy} from "../lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
+import {QVBaseStrategy} from "../lib/allo/contracts/strategies/qv-base/QVBaseStrategy.sol";
+import {IStrategy} from "../lib/allo/contracts/core/interfaces/IStrategy.sol";
 
 contract PledgePost {
     Allo allo;
@@ -90,8 +90,6 @@ contract PledgePost {
             nonce,
             "PledgePost Contract Owner Profile",
             Metadata({protocol: 1, pointer: "PledgePost"}),
-            // should be manage correctly
-            // temporary setting address(this) because contract itself call allo functions
             address(this),
             members
         );
@@ -142,8 +140,8 @@ contract PledgePost {
     ) external payable {}
 
     /*
-		// should be called via allo contract
-		// because it takes msg.sender as the recipient
+    // should be called via allo contract
+    // because it takes msg.sender as the recipient
     function applyForRound(uint256 _poolId, bytes memory _data) external {
         /// - If registryGating is true, then the data is encoded as (address recipientId, address recipientAddress, Metadata metadata)
         /// - If registryGating is false, then the data is encoded as (address recipientAddress, address registryAnchor, Metadata metadata)
@@ -227,6 +225,10 @@ contract PledgePost {
         bytes32 _profileId
     ) external view returns (Article memory) {
         return profileArticle[_profileId];
+    }
+
+    function getNonce() external view returns (uint256) {
+        return nonce;
     }
 
     // ====================================

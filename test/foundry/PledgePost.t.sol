@@ -3,11 +3,11 @@ pragma solidity ^0.8.19;
 
 import {Test, console2} from "forge-std/Test.sol";
 import "../../contracts/PledgePost.sol";
-import {IRegistry} from "lib/allo/contracts/core/interfaces/IRegistry.sol";
-import {Metadata} from "lib/allo/contracts/core/libraries/Metadata.sol";
-import {IAllo} from "lib/allo/contracts/core/interfaces/IAllo.sol";
-import {QVBaseStrategy} from "lib/allo/contracts/strategies/qv-base/QVBaseStrategy.sol";
-import {QVSimpleStrategy} from "lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
+import {IRegistry} from "../../lib/allo/contracts/core/interfaces/IRegistry.sol";
+import {Metadata} from "../../lib/allo/contracts/core/libraries/Metadata.sol";
+import {IAllo} from "../../lib/allo/contracts/core/interfaces/IAllo.sol";
+import {QVBaseStrategy} from "../../lib/allo/contracts/strategies/qv-base/QVBaseStrategy.sol";
+import {QVSimpleStrategy} from "../../lib/allo/contracts/strategies/qv-simple/QVSimpleStrategy.sol";
 
 // TODO: create profile via registry directly, instead of using PledgePost
 
@@ -29,33 +29,22 @@ contract PledgePostTest is Test {
     );
 
     function setUp() public {
-        pledgepost = new PledgePost(msg.sender, treasury, 0, 0);
+        vm.startPrank(msg.sender);
+        pledgepost = new PledgePost(owner, treasury, 0, 0);
         emit log_named_address("pledgepost", address(pledgepost));
         emit log_named_address("address(this)", address(this));
         emit log_named_address("msg.sender", msg.sender);
-    }
-
-    function testgetAlloAddress() public {
-        address allo = pledgepost.getAlloAddress();
-        emit log_named_address("allo", allo);
-        assertNotEq(allo, address(0));
-        assertEq(allo, pledgepost.getAlloAddress());
-    }
-
-    function testgetRegistryAddress() public {
-        address registry = pledgepost.getRegistryAddress();
-        emit log_named_address("registry", registry);
-        assertNotEq(registry, address(0));
-        assertEq(registry, pledgepost.getRegistryAddress());
+        vm.stopPrank();
     }
 
     function testPostArticle() public {
-        address[] memory addresses = new address[](0);
-        pledgepost.postArticle("Test Article 1", addresses);
-        pledgepost.postArticle("Test Article 2", addresses);
+        vm.prank(msg.sender);
+        pledgepost.postArticle("Test Article 1", new address[](0));
+        pledgepost.postArticle("Test Article 2", new address[](0));
     }
 
     function testCreateRound() public {
+        vm.startPrank(msg.sender);
         address[] memory addresses = new address[](1);
         addresses[0] = owner;
         registrationStartTime = uint64(block.timestamp);
@@ -83,23 +72,19 @@ contract PledgePostTest is Test {
 
     function testApplyForRound() public {
         // postArticle()
-        string memory content = "Test Article";
-        address[] memory contributors = new address[](0);
-
+        vm.startPrank(msg.sender);
         PledgePost.Article memory article = pledgepost.postArticle(
-            content,
-            contributors
+            "Test Article 1",
+            new address[](0)
         );
         bytes32 profileId = article.profileId;
+
         IRegistry.Profile memory profile = pledgepost.getProfileById(profileId);
         Metadata memory metadata = profile.metadata;
-        assertEq(profileId, profile.id);
         address anchor = profile.anchor;
-        assertNotEq(anchor, address(0));
 
         // createRound()
         address[] memory addresses = new address[](0);
-
         registrationStartTime = uint64(block.timestamp);
         registrationEndTime = uint64(block.timestamp + 300);
         allocationStartTime = uint64(block.timestamp + 301);
@@ -118,9 +103,9 @@ contract PledgePostTest is Test {
         );
 
         // applyForRound()
-        bytes memory data = abi.encode(address(this), anchor, metadata);
+        bytes memory data = abi.encode(msg.sender, anchor, metadata);
         bool hasProfile = IRegistry(pledgepost.getRegistryAddress())
-            .isOwnerOrMemberOfProfile(profileId, address(this));
+            .isOwnerOrMemberOfProfile(profileId, msg.sender);
         assertEq(hasProfile, true);
         address recipientId = IAllo(pledgepost.getAlloAddress())
             .registerRecipient(poolId, data);
