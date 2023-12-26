@@ -13,9 +13,8 @@ import {QVSimpleStrategy} from "../../lib/allo/contracts/strategies/qv-simple/QV
 
 contract PledgePostTest is Test {
     PledgePost pledgepost;
-    address owner = 0x9B789cc315F1eedFbCBE759DEbb5a3D5D41B788f;
-    address payable treasury =
-        payable(0x9B789cc315F1eedFbCBE759DEbb5a3D5D41B788f);
+    address owner = makeAddr("Owner");
+    address payable treasury = payable(makeAddr("Treasury"));
     uint64 public registrationStartTime;
     uint64 public registrationEndTime;
     uint64 public allocationStartTime;
@@ -40,6 +39,7 @@ contract PledgePostTest is Test {
     function testPostArticle() public {
         vm.prank(msg.sender);
         pledgepost.postArticle("Test Article 1", new address[](0));
+        vm.prank(makeAddr("Author 1"));
         pledgepost.postArticle("Test Article 2", new address[](0));
     }
 
@@ -71,23 +71,12 @@ contract PledgePostTest is Test {
     }
 
     function testApplyForRound() public {
-        // postArticle()
         vm.startPrank(msg.sender);
-        PledgePost.Article memory article = pledgepost.postArticle(
-            "Test Article 1",
-            new address[](0)
-        );
-        bytes32 profileId = article.profileId;
-
-        IRegistry.Profile memory profile = pledgepost.getProfileById(profileId);
-        Metadata memory metadata = profile.metadata;
-        address anchor = profile.anchor;
-
         // createRound()
         address[] memory addresses = new address[](0);
         registrationStartTime = uint64(block.timestamp);
         registrationEndTime = uint64(block.timestamp + 300);
-        allocationStartTime = uint64(block.timestamp + 301);
+        allocationStartTime = uint64(block.timestamp);
         allocationEndTime = uint64(block.timestamp + 600);
 
         (uint256 poolId, address strategy) = pledgepost.createRound{
@@ -101,16 +90,40 @@ contract PledgePostTest is Test {
             allocationStartTime,
             allocationEndTime
         );
-
-        // applyForRound()
-        bytes memory data = abi.encode(msg.sender, anchor, metadata);
-        bool hasProfile = IRegistry(pledgepost.getRegistryAddress())
-            .isOwnerOrMemberOfProfile(profileId, msg.sender);
-        assertEq(hasProfile, true);
+        // apply msg.sender as author
+        PledgePost.Article memory article1 = pledgepost.postArticle(
+            "Test Article 1",
+            new address[](0)
+        );
+        bytes32 profileId = article1.profileId;
+        IRegistry.Profile memory profile = pledgepost.getProfileById(profileId);
+        Metadata memory metadata = profile.metadata;
+        bytes memory data = abi.encode(msg.sender, profile.anchor, metadata);
         address recipientId = IAllo(pledgepost.getAlloAddress())
             .registerRecipient(poolId, data);
         QVBaseStrategy.Recipient memory recipient = QVSimpleStrategy(
             payable(strategy)
         ).getRecipient(recipientId);
+
+        vm.stopPrank();
+
+        // apply Author 1 as author
+        address author1 = makeAddr("Author 1");
+        vm.startPrank(author1);
+        PledgePost.Article memory article2 = pledgepost.postArticle(
+            "Test Article 2",
+            new address[](0)
+        );
+        bytes32 profileId2 = article2.profileId;
+        IRegistry.Profile memory profile2 = pledgepost.getProfileById(
+            profileId2
+        );
+        Metadata memory metadata2 = profile2.metadata;
+        bytes memory data2 = abi.encode(author1, profile2.anchor, metadata2);
+        address recipientId2 = IAllo(pledgepost.getAlloAddress())
+            .registerRecipient(poolId, data2);
+        QVBaseStrategy.Recipient memory recipient2 = QVSimpleStrategy(
+            payable(strategy)
+        ).getRecipient(recipientId2);
     }
 }

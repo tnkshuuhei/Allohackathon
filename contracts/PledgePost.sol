@@ -139,6 +139,8 @@ contract PledgePost {
         uint256 _articleId
     ) external payable {}
 
+    // TODO: addAllocator
+    // TODO: allocate(donateToArticle)
     /*
     // should be called via allo contract
     // because it takes msg.sender as the recipient
