@@ -47,7 +47,8 @@ contract PledgePost {
         address indexed author,
         address indexed from,
         uint256 articleId,
-        uint256 amount
+        uint256 amount,
+        uint256 poolId
     );
     event RoundCreated(
         uint256 indexed poolId,
@@ -84,6 +85,7 @@ contract PledgePost {
         address[] memory members = new address[](2);
         members[0] = _owner;
         members[1] = msg.sender;
+        // TODO: fix owner
 
         // create a new profile for the owner
         ownerProfileId = registry.createProfile(
@@ -129,15 +131,32 @@ contract PledgePost {
         return newArticle;
     }
 
-    function updateArticle(
-        uint256 _articleId,
-        string calldata _content
-    ) external {}
-
     function donateToArticle(
         address payable _author,
-        uint256 _articleId
-    ) external payable {}
+        uint256 _articleId,
+        uint256 _poolId
+    ) external payable {
+        require(msg.value > 0, "Donation amount must be greater than 0");
+        require(
+            msg.sender.balance >= msg.value,
+            "Donation amount must be greater than 0"
+        );
+        Article memory article = authorArticles[_author][_articleId];
+        article.donationsReceived += msg.value;
+        address _strategy = getStrategyAddress(_poolId);
+        if (!IStrategy(_strategy).isValidAllocator(msg.sender)) {
+            QVSimpleStrategy(payable(_strategy)).addAllocator(msg.sender);
+            bytes memory _data = abi.encode(_author, msg.value);
+            allo.allocate{value: msg.value}(_poolId, _data);
+            emit ArticleDonated(
+                _author,
+                msg.sender,
+                _articleId,
+                msg.value,
+                _poolId
+            );
+        }
+    }
 
     // TODO: addAllocator
     // TODO: allocate(donateToArticle)
@@ -176,7 +195,7 @@ contract PledgePost {
         uint64 registrationEndTime,
         uint64 allocationStartTime,
         uint64 allocationEndTime
-    ) external payable returns (uint256, address) {
+    ) external payable returns (uint256 poolId) {
         // deploy strategy
         QVSimpleStrategy _strategy = new QVSimpleStrategy(address(allo), _name);
 
@@ -203,7 +222,7 @@ contract PledgePost {
 
         // fund pool when deploying strategy instead of allo.fundPool function
         // strategy is not initialized yet, it'll be initialized here
-        uint256 poolId = allo.createPoolWithCustomStrategy{value: _amount}(
+        poolId = allo.createPoolWithCustomStrategy{value: _amount}(
             ownerProfileId,
             address(_strategy),
             _data,
@@ -214,7 +233,7 @@ contract PledgePost {
         );
         strategies[poolId] = address(_strategy);
         emit RoundCreated(poolId, _name, NATIVE, _amount, address(_strategy));
-        return (poolId, address(_strategy));
+        return (poolId);
     }
 
     function getArticlesByAuthor(

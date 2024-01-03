@@ -52,9 +52,7 @@ contract PledgePostTest is Test {
         allocationStartTime = uint64(block.timestamp + 301);
         allocationEndTime = uint64(block.timestamp + 600);
 
-        (uint256 poolId, address strategy) = pledgepost.createRound{
-            value: 1e18
-        }(
+        uint256 poolId = pledgepost.createRound{value: 1e18}(
             "test Round",
             1e18,
             addresses,
@@ -64,10 +62,7 @@ contract PledgePostTest is Test {
             allocationEndTime
         );
         emit log_named_uint("poolId", poolId);
-        emit log_named_address("strategy", strategy);
         assertEq(poolId, 1);
-        assertNotEq(strategy, address(0));
-        assertEq(pledgepost.getStrategyAddress(1), strategy);
     }
 
     function testApplyForRound() public {
@@ -79,9 +74,7 @@ contract PledgePostTest is Test {
         allocationStartTime = uint64(block.timestamp);
         allocationEndTime = uint64(block.timestamp + 600);
 
-        (uint256 poolId, address strategy) = pledgepost.createRound{
-            value: 1e18
-        }(
+        uint256 poolId = pledgepost.createRound{value: 1e18}(
             "test Round",
             1e18,
             addresses,
@@ -101,10 +94,7 @@ contract PledgePostTest is Test {
         bytes memory data = abi.encode(msg.sender, profile.anchor, metadata);
         address recipientId = IAllo(pledgepost.getAlloAddress())
             .registerRecipient(poolId, data);
-        QVBaseStrategy.Recipient memory recipient = QVSimpleStrategy(
-            payable(strategy)
-        ).getRecipient(recipientId);
-
+        emit log_named_address("recipientId", recipientId);
         vm.stopPrank();
 
         // apply Author 1 as author
@@ -122,8 +112,17 @@ contract PledgePostTest is Test {
         bytes memory data2 = abi.encode(author1, profile2.anchor, metadata2);
         address recipientId2 = IAllo(pledgepost.getAlloAddress())
             .registerRecipient(poolId, data2);
-        QVBaseStrategy.Recipient memory recipient2 = QVSimpleStrategy(
-            payable(strategy)
-        ).getRecipient(recipientId2);
+        emit log_named_address("recipientId2", recipientId2);
+        vm.stopPrank();
+
+        // DonateToArticle()
+        vm.startPrank(msg.sender);
+
+        pledgepost.donateToArticle{value: 1e17}(
+            payable(author1),
+            article2.id,
+            poolId
+        );
+        vm.stopPrank();
     }
 }
